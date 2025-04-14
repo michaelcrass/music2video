@@ -5,6 +5,9 @@ from matplotlib import cm
 from pydub import AudioSegment
 from moviepy.editor import ImageSequenceClip, AudioFileClip
 import matplotlib.patheffects as path_effects
+from tqdm import tqdm
+
+
 
 
 # === CONFIGURATION ===
@@ -44,7 +47,7 @@ def draw_starfield(ax, star_count=300):
 # === GENERATE FRAMES ===
 print("🪐 Generating galaxy frames...")
 
-for i in range(total_frames):
+for i in tqdm(range(total_frames), desc="🌌 Generating Frames", unit="frame", dynamic_ncols=True):
     start = i * samples_per_frame
     end = start + samples_per_frame
     frame = samples[start:end]
@@ -89,6 +92,8 @@ for i in range(total_frames):
     plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
     plt.savefig(f"{TEMP_DIR}/frame_{i:05d}.png", facecolor='black')
     plt.close()
+    
+
 
 # === CREATE VIDEO ===
 print("🎬 Composing video with audio...")
