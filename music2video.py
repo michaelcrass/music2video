@@ -7,15 +7,15 @@ from moviepy.editor import ImageSequenceClip, AudioFileClip
 
 # === CONFIGURATION ===
 FRAME_RATE = 30
-AUDIO_FILE = "quiet_bonds.wav"
-OUTPUT_VIDEO = "visualizer_no_ffmpeg.mp4"
+AUDIO_FILE = input("Enter the path to the audio file (wav): ")
+OUTPUT_VIDEO = "musicvideo.mp4"
 TEMP_DIR = "frames"
 os.makedirs(TEMP_DIR, exist_ok=True)
 
 
-if not os.path.exists(AUDIO_FILE):
-    raise FileNotFoundError(f"Datei nicht gefunden: {AUDIO_FILE}")
 
+if not os.path.exists(AUDIO_FILE):
+    raise FileNotFoundError(f"File not found: {AUDIO_FILE}")
 
 
 # === LOAD AUDIO ===
