@@ -122,9 +122,9 @@ def generate_circle_frame(i):
 
     # Add soft glow text
     glow = [path_effects.Stroke(linewidth=4, foreground='black'), path_effects.Normal()]
-    txt1 = ax.text(0.0, -1.1, f"{TITLE}", fontsize=18, color='white',
+    txt1 = ax.text(0.0, -0.85, f"{TITLE}", fontsize=18, color='white',
                    ha='center', va='top', alpha=alpha, path_effects=glow)
-    txt2 = ax.text(0.0, -1.25, f"{AUTHOR}", fontsize=13, color='lightgrey',
+    txt2 = ax.text(0.0, -0.9, f"{AUTHOR}", fontsize=13, color='lightgrey',
                    ha='center', va='top', alpha=alpha, path_effects=glow)
 
     # Adjust view and layout
