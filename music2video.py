@@ -8,6 +8,8 @@ from moviepy.editor import ImageSequenceClip, AudioFileClip
 from multiprocessing import Pool, cpu_count
 from tqdm import tqdm
 import os
+import warnings
+warnings.filterwarnings("ignore")
 
 # === HELPER FUNCTIONS ===
 def rainbow_line(ax, y_vals):
@@ -104,20 +106,20 @@ def main():
     total_frames = int(len(samples) / samples_per_frame)
 
     # === PARALLEL FRAME GENERATION ===
-    print("🪐 Generating galaxy frames in parallel...")
+    print("Generating galaxy frames in parallel...")
 
     with Pool(cpu_count(), initializer=init_worker,
               initargs=(samples, samples_per_frame, AUTHOR_NAME, TITLE_NAME, total_frames)) as pool:
         frames = list(tqdm(pool.imap(generate_frame, range(total_frames)),
-                           total=total_frames, desc="🌌 Generating Frames", unit="frame"))
+                           total=total_frames, desc="Generating Frames", unit="frame"))
 
     # === CREATE VIDEO ===
-    print("🎬 Composing video with audio...")
+    print("Composing video with audio...")
     clip = ImageSequenceClip(frames, fps=FRAME_RATE)
     clip = clip.set_audio(AudioFileClip(AUDIO_FILE))
     clip.write_videofile(OUTPUT_VIDEO, codec="libx264", audio_codec="aac", ffmpeg_params=["-loglevel", "quiet"])
 
-    print(f"✅ Done! Saved to {OUTPUT_VIDEO}")
+    print(f"Done! Saved to {OUTPUT_VIDEO}")
 
 if __name__ == "__main__":
     main()
