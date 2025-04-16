@@ -29,6 +29,7 @@ samples_per_frame = None
 FRAME_RATE = 30
 AUTHOR = ""
 TITLE = ""
+VISUAL_OPTION = 0
 total_frames = 0
 
 def init_worker(audio_data, spf, author, title, total):
@@ -39,7 +40,7 @@ def init_worker(audio_data, spf, author, title, total):
     TITLE = title
     total_frames = total
 
-def generate_frame(i):
+def generate_wave_frame(i):
     start = i * samples_per_frame
     end = start + samples_per_frame
     frame = samples[start:end]
@@ -84,6 +85,64 @@ def generate_frame(i):
     plt.close(fig)
     return img
 
+def generate_circle_frame(i):
+    start = i * samples_per_frame
+    end = start + samples_per_frame
+    frame = samples[start:end]
+    norm_frame = frame / (2**15)
+
+    # Create a 1920x1080 figure
+    fig, ax = plt.subplots(figsize=(19.2, 10.8), dpi=100)
+    fig.patch.set_facecolor('black')
+    ax.set_facecolor('black')
+
+    draw_starfield(ax)  # Your starfield function, assumed defined elsewhere
+
+    # Create circular waveform
+    N = len(norm_frame)
+    theta = np.linspace(0, 2 * np.pi, N)
+    radius = 0.3 + 0.2 * norm_frame  # Base radius + waveform
+
+    # Convert polar to cartesian
+    x = radius * np.cos(theta)
+    y = radius * np.sin(theta)
+
+    # Plot each segment in rainbow color
+    for j in range(N - 1):
+        c = cm.hsv(j / N)
+        ax.plot(x[j:j+2], y[j:j+2], color=c, linewidth=2.5)
+
+    # Fading alpha at beginning and end
+    fade_duration = FRAME_RATE
+    alpha = 1.0
+    if i < fade_duration:
+        alpha = i / fade_duration
+    elif i > total_frames - fade_duration:
+        alpha = (total_frames - i) / fade_duration
+
+    # Add soft glow text
+    glow = [path_effects.Stroke(linewidth=4, foreground='black'), path_effects.Normal()]
+    txt1 = ax.text(0.0, -1.1, f"{TITLE}", fontsize=18, color='white',
+                   ha='center', va='top', alpha=alpha, path_effects=glow)
+    txt2 = ax.text(0.0, -1.25, f"{AUTHOR}", fontsize=13, color='lightgrey',
+                   ha='center', va='top', alpha=alpha, path_effects=glow)
+
+    # Adjust view and layout
+    ax.set_xlim(-1.7, 1.7)
+    ax.set_ylim(-1.0, 1.0)
+    ax.set_aspect('equal')
+    ax.axis('off')
+    plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
+
+    # Render the figure to a NumPy array (image)
+    canvas = FigureCanvas(fig)
+    canvas.draw()
+    img = np.frombuffer(canvas.tostring_rgb(), dtype='uint8')
+    img = img.reshape(canvas.get_width_height()[::-1] + (3,))
+    plt.close(fig)
+    return img
+
+
 def main():
     global samples, samples_per_frame, total_frames
 
@@ -91,6 +150,7 @@ def main():
     AUDIO_FILE = input("Enter the path to the audio file (wav): ")
     AUTHOR_NAME = input("Enter your name: ")
     TITLE_NAME = input("Enter the title: ")
+    VISUAL_OPTION = int(input("Enter the visual option (0 for wave, 1 for circle): "))
     OUTPUT_VIDEO = "visualization.mp4"
 
     if not os.path.exists(AUDIO_FILE):
@@ -106,6 +166,11 @@ def main():
     # === PARALLEL FRAME GENERATION ===
     print("Generating galaxy frames in parallel...")
 
+
+    if VISUAL_OPTION == 0:
+        generate_frame = generate_wave_frame
+    else:
+        generate_frame = generate_circle_frame
     with Pool(cpu_count(), initializer=init_worker,
               initargs=(samples, samples_per_frame, AUTHOR_NAME, TITLE_NAME, total_frames)) as pool:
         frames = list(tqdm(pool.imap(generate_frame, range(total_frames)),
