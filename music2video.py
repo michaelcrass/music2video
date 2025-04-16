@@ -8,8 +8,6 @@ from moviepy.editor import ImageSequenceClip, AudioFileClip
 from multiprocessing import Pool, cpu_count
 from tqdm import tqdm
 import os
-import warnings
-warnings.filterwarnings("ignore")
 
 # === HELPER FUNCTIONS ===
 def rainbow_line(ax, y_vals):
