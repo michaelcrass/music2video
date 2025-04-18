@@ -8,8 +8,17 @@ from moviepy.editor import ImageSequenceClip, AudioFileClip
 from multiprocessing import Pool, cpu_count
 from tqdm import tqdm
 import os
+from PIL import Image
+
 
 # === HELPER FUNCTIONS ===
+
+def generate_and_save_frame(args):
+    generate_func, frame_idx = args
+    image_array = generate_func(frame_idx)
+    image = Image.fromarray(image_array)
+    image.save(f"frames/frame_{frame_idx:05d}.png")
+
 def rainbow_line(ax, y_vals):
     x_vals = np.linspace(0, 1, len(y_vals))
     for i in range(len(y_vals) - 1):
@@ -146,6 +155,9 @@ def generate_circle_frame(i):
 def main():
     global samples, samples_per_frame, total_frames
 
+    if not os.path.exists("frames"):
+        os.makedirs("frames")
+
     # === GET USER INPUT ===
     AUDIO_FILE = input("Enter the path to the audio file (wav): ")
     AUTHOR_NAME = input("Enter your name: ")
@@ -171,18 +183,44 @@ def main():
         generate_frame = generate_wave_frame
     else:
         generate_frame = generate_circle_frame
+
+
+    # with Pool(cpu_count(), initializer=init_worker,
+    #           initargs=(samples, samples_per_frame, AUTHOR_NAME, TITLE_NAME, total_frames)) as pool:
+    #     frames = list(tqdm(pool.imap(generate_frame, range(total_frames)),
+    #                        total=total_frames, desc="Generating Frames", unit="frame"))
+        
+
     with Pool(cpu_count(), initializer=init_worker,
-              initargs=(samples, samples_per_frame, AUTHOR_NAME, TITLE_NAME, total_frames)) as pool:
-        frames = list(tqdm(pool.imap(generate_frame, range(total_frames)),
-                           total=total_frames, desc="Generating Frames", unit="frame"))
+            initargs=(samples, samples_per_frame, AUTHOR_NAME, TITLE_NAME, total_frames)) as pool: list(tqdm(pool.imap(generate_and_save_frame,
+                        [(generate_frame, i) for i in range(total_frames)]),
+                total=total_frames, desc="Generating Frames", unit="frame"))
+
 
     # === CREATE VIDEO ===
+    # print("Composing video with audio...")
+    # clip = ImageSequenceClip(frames, fps=FRAME_RATE)
+    # clip = clip.set_audio(AudioFileClip(AUDIO_FILE))
+    # clip.write_videofile(OUTPUT_VIDEO, codec="libx264", audio_codec="aac", ffmpeg_params=["-loglevel", "quiet"])
+
+
     print("Composing video with audio...")
-    clip = ImageSequenceClip(frames, fps=FRAME_RATE)
+    frame_files = [f"frames/frame_{i:05d}.png" for i in range(total_frames)]
+    clip = ImageSequenceClip(frame_files, fps=FRAME_RATE)
     clip = clip.set_audio(AudioFileClip(AUDIO_FILE))
     clip.write_videofile(OUTPUT_VIDEO, codec="libx264", audio_codec="aac", ffmpeg_params=["-loglevel", "quiet"])
 
+
     print(f"Done! Saved to {OUTPUT_VIDEO}")
+
+
+    # print("Cleaning up temporary frame files...")
+    # for file in frame_files:
+    #     os.remove(file)
+    # os.rmdir("frames")
+
+    print("Done!")
+
 
 if __name__ == "__main__":
     main()
