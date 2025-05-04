@@ -3,7 +3,9 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 import matplotlib.patheffects as path_effects
-from pydub import AudioSegment
+import ffmpeg
+import soundfile as sf
+
 from moviepy.editor import ImageSequenceClip, AudioFileClip
 from multiprocessing import Pool, cpu_count
 from tqdm import tqdm
@@ -86,11 +88,15 @@ def generate_wave_frame(i):
     ax.axis('off')
     plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
 
+
+    # Render the figure to a NumPy array (image)
     canvas = FigureCanvas(fig)
     canvas.draw()
 
-    img = np.frombuffer(canvas.tostring_rgb(), dtype='uint8')
-    img = img.reshape(canvas.get_width_height()[::-1] + (3,))
+    # Neues Verfahren für Python 3.13
+    rgba = np.asarray(canvas.buffer_rgba())
+    img = rgba[:, :, :3]  # Nur RGB, Alpha ignorieren
+
     plt.close(fig)
     return img
 
@@ -146,8 +152,11 @@ def generate_circle_frame(i):
     # Render the figure to a NumPy array (image)
     canvas = FigureCanvas(fig)
     canvas.draw()
-    img = np.frombuffer(canvas.tostring_rgb(), dtype='uint8')
-    img = img.reshape(canvas.get_width_height()[::-1] + (3,))
+
+    # Neues Verfahren für Python 3.13
+    rgba = np.asarray(canvas.buffer_rgba())
+    img = rgba[:, :, :3]  # Nur RGB, Alpha ignorieren
+
     plt.close(fig)
     return img
 
@@ -169,9 +178,14 @@ def main():
         raise FileNotFoundError(f"File not found: {AUDIO_FILE}")
 
     # === LOAD AUDIO ===
-    audio = AudioSegment.from_file(AUDIO_FILE).set_channels(1)
-    samples = np.array(audio.get_array_of_samples())
-    sample_rate = audio.frame_rate
+    # Konvertiere Audio ggf. temporär in WAV-Mono-Format (falls nötig)
+    wav_temp = "temp_audio.wav"
+    ffmpeg.input(AUDIO_FILE).output(wav_temp, ac=1, ar=44100, format='wav').overwrite_output().run()
+
+    # Lade die WAV-Datei
+    samples, sample_rate = sf.read(wav_temp)
+    samples = (samples * 32768).astype(np.int16)  # Skaliere auf 16-Bit
+
     samples_per_frame = int(sample_rate / FRAME_RATE)
     total_frames = int(len(samples) / samples_per_frame)
 
@@ -218,6 +232,10 @@ def main():
     # for file in frame_files:
     #     os.remove(file)
     # os.rmdir("frames")
+
+    if os.path.exists("temp_audio.wav"):
+        os.remove("temp_audio.wav")
+
 
     print("Done!")
 
